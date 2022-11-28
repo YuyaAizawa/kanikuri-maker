@@ -1,11 +1,15 @@
-module Main exposing (main)
+port module Main exposing (main)
 
+import Base64
+import Bytes
+import Bytes.Encode as BE
+import Bytes.Decode as BD
 import Browser
 import Html exposing (Html, div, input, text, button)
 import Html.Attributes exposing (class, value, size)
 import Html.Events exposing (onClick, onInput)
 import Random exposing (Generator)
-
+import Url exposing (Url)
 
 
 main =
@@ -16,6 +20,8 @@ main =
     , subscriptions = (\_ -> Sub.none)
     }
 
+port updateWiget : ( String, String ) -> Cmd msg
+
 
 
 -- MODEL --
@@ -25,9 +31,12 @@ type alias Model =
   , result : String
   }
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-  ( { format = "カ#ニク#リ#ー#ムコロ#ッケ"
+init : String -> ( Model, Cmd Msg )
+init query =
+  ( { format =
+        query
+          |> stringFromQuery
+          |> Maybe.withDefault "カ#ニク#リ#ー#ムコロ#ッケ"
     , result = ""
     }
   , Cmd.none
@@ -63,7 +72,12 @@ update msg ({ format, result } as model) =
           construct format list
       in
         ( Model format result_
-        , Cmd.none
+        , updateWiget
+          ( result_
+          , format
+            |> stringToQuery
+            |> Maybe.withDefault ""
+          )
         )
 
 getSortee : String -> List Char
@@ -144,3 +158,45 @@ randomList original =
 anyInt : Generator Int
 anyInt =
   Random.int Random.minInt Random.maxInt
+
+
+
+-- SERIALIZE --
+
+stringToQuery : String -> Maybe String
+stringToQuery str =
+  let
+    sizedString =
+      BE.sequence
+        [ BE.unsignedInt8 <| BE.getStringWidth str
+        , BE.string str
+        ]
+  in
+    sizedString
+      |> BE.encode
+      |> Base64.fromBytes
+      |> Maybe.map base64ToUri
+
+stringFromQuery : String -> Maybe String
+stringFromQuery query =
+  let
+    sizedString =
+      BD.unsignedInt8
+        |> BD.andThen BD.string
+  in
+    query
+      |> uriToBase64
+      |> Base64.toBytes
+      |> Maybe.andThen (BD.decode sizedString)
+
+base64ToUri : String -> String
+base64ToUri =
+  String.replace "+" "*"
+    >> String.replace "/" "."
+    >> String.replace "=" "-"
+
+uriToBase64 : String -> String
+uriToBase64 =
+  String.replace "*" "+"
+    >> String.replace "." "/"
+    >> String.replace "-" "="

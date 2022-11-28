@@ -2,18 +2,33 @@
 <html lang="jp">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>カニクリームコロッケメーカー</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
   <link rel="stylesheet" type="text/css" href="elm.css">
   <script src="js/elm.js"></script>
+  <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 </head>
 <body>
   <h1>カニクリームコロッケメーカー</h1>
   <div id="elm-area"><p>Failed to load elm.js</p></div>
+  <div id="tweet-button"></div>
+  <p>code: <a href="https://github.com/YuyaAizawa/kanikuri-maker">github.com/YuyaAizawa/kanikuri-maker</p>
 </body>
 <script>
-  const app = document.getElementById("elm-area")
-  Elm.Main.init({ node: app });
+  function getParam(name) {
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(window.location.href);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+  var app = Elm.Main.init({
+    node: document.getElementById("elm-area"),
+    flags: getParam("format")??" "
+  });
+  app.ports.updateWiget.subscribe(function(data) {
+      document.getElementById("tweet-button").innerHTML = '<a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-text="' + data[0] + '" data-url="https://yuyaaizawa.github.io/kanikuri-maker/?format=' + data[1] + '" data-hashtags="カニクリームコロッケメーカー" data-related="TypedTypelessTy">Tweetで共有</a>';
+      twttr.widgets.load();
+    });
 </script>
 </html>
